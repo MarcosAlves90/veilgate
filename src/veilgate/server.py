@@ -87,7 +87,7 @@ def handler_factory(upstream: tuple[str, int], private_terms: tuple[str, ...]):
                     self.end_headers()
                     self.close_connection = True
                     total = 0
-                    while chunk := response.read(16384):
+                    while chunk := response.read1(16384):
                         total += len(chunk)
                         if total > MAX_RESPONSE_BYTES:
                             break  # connection drops; never silently truncate a complete SSE frame
