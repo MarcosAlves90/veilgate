@@ -1,5 +1,7 @@
 # VeilGate
 
+![VeilGate official cover](docs/assets/veilgate-cover.png)
+
 **Local privacy proxy for OpenAI-compatible Chat Completions clients, with a focus on Hermes Agent and FreeLLMAPI.**
 
 VeilGate examines text requests **before** they reach FreeLLMAPI. It replaces common personal identifiers with per-request placeholders and **rejects requests** that match known credential patterns. VeilGate itself does not log or persist prompts, send telemetry, or contact third-party services.
