@@ -32,13 +32,16 @@ Python **3.11+**. Sem dependências de runtime (biblioteca padrão). Compatível
 
 ## Instalação
 
+Extraia o arquivo `veilgate-project.zip` e abra a pasta extraída:
+
 ```bash
-git clone https://github.com/SEU_USUARIO/veilgate.git
 cd veilgate
 python3 -m venv .venv
 source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e .
 ```
+
+Depois de publicado no GitHub, também será possível instalar a partir de um `git clone`.
 
 Execute o FreeLLMAPI na porta `3001` como usual. Em outro terminal, inicie:
 
@@ -112,6 +115,19 @@ Os testes usam um upstream HTTP simulado, não fazem chamadas a modelos reais e 
 - Tokens de API presentes no corpo são bloqueados por heurística, não por cobertura exaustiva.
 - Pseudônimos são consistentes **dentro de uma requisição**; não há armazenamento ou associação entre sessões.
 - Para confidencialidade forte, prefira execução totalmente local do modelo e não use serviços externos.
+
+## Publicação no GitHub
+
+O pacote inclui o diretório `.git` e os commits locais. Para criar um **novo repositório privado** no GitHub usando o GitHub CLI (`gh`), depois de extrair o ZIP:
+
+```bash
+brew install gh                # macOS, caso ainda não esteja instalado
+gh auth login                 # autentique sua própria conta
+cd veilgate
+gh repo create MarcosAlves90/veilgate --private --source=. --remote=origin --push
+```
+
+**Importante:** este comando cria um novo repositório remoto; não execute se já existir outro repositório nesse nome. É possível mudar o nome antes de executar.
 
 ## Licença
 
