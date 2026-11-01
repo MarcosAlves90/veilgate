@@ -1,4 +1,4 @@
-# Threat model / Modelo de ameaças
+# Threat model
 
 ## Assets
 - Personal identifiers in text chat messages, tool results, and tool arguments.

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,9 +8,15 @@ version = "0.1.0"
 description = "Local-only fail-closed PII filter for OpenAI-compatible LLM requests"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{name = "VeilGate contributors"}]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/MarcosAlves90/veilgate"
+Repository = "https://github.com/MarcosAlves90/veilgate"
+Issues = "https://github.com/MarcosAlves90/veilgate/issues"
 
 [project.optional-dependencies]
 dev = ["coverage>=7,<9"]

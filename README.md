@@ -1,38 +1,39 @@
 # VeilGate
 
-**Proxy local de privacidade para clientes compatíveis com OpenAI Chat Completions, com foco em Hermes Agent e FreeLLMAPI.**
+**Local privacy proxy for OpenAI-compatible Chat Completions clients, with a focus on Hermes Agent and FreeLLMAPI.**
 
-O VeilGate examina requisições de texto **antes** de chegarem ao FreeLLMAPI. Ele mascara identificadores comuns e **rejeita requisições** que aparentemente contêm segredos. Nenhum dado de prompt é registrado, armazenado, enviado para telemetria ou processado por serviços de terceiros pelo próprio VeilGate.
+VeilGate examines text requests **before** they reach FreeLLMAPI. It replaces common personal identifiers with per-request placeholders and **rejects requests** that match known credential patterns. VeilGate itself does not log or persist prompts, send telemetry, or contact third-party services.
 
-> **Aviso:** filtragem baseada em padrões **não garante anonimização**. Informações contextuais, nomes próprios, endereços e formatos desconhecidos podem escapar. Provedores externos continuam recebendo sua identidade de conta e metadados de conexão via FreeLLMAPI. Leia [Modelo de ameaças](docs/threat-model.md).
+> **Privacy notice:** Pattern matching **does not guarantee anonymization**. Names, physical addresses, contextual clues, and unrecognized formats may pass through. External providers can still learn account and connection metadata through FreeLLMAPI. Review the [threat model](docs/threat-model.md) before use.
 
-## Arquitetura
+## Architecture
 
 ```text
-Hermes Agent / cliente OpenAI
-         |
-         v
+Hermes Agent / OpenAI-compatible client
+                  |
+                  v
 VeilGate  http://127.0.0.1:8080/v1
-  ├── máscara local de e-mail, CPF/CNPJ válidos, celular BR, usuário em /Users ou /home
-  ├── termos personalizados em arquivo local ignorado pelo Git
-  ├── bloqueio de credenciais (padrões conhecidos)
-  ├── limita JSON, tamanho e rotas; bloqueia multimodal
-  └── repassa JSON / SSE sem alterar a resposta
-         |
-         v
+  |-- locally redacts email addresses, valid Brazilian CPF/CNPJ identifiers,
+  |   Brazilian mobile phone numbers, and usernames in /Users or /home paths
+  |-- redacts custom terms from an untracked local configuration file
+  |-- blocks requests containing recognized credential patterns
+  |-- validates JSON, request size, and routes; rejects multimodal content
+  `-- relays JSON / SSE responses without modification
+                  |
+                  v
 FreeLLMAPI http://127.0.0.1:3001/v1
-         |
-         v
-Provedores externos
+                  |
+                  v
+External model providers
 ```
 
-## Requisitos
+## Requirements
 
-Python **3.11+**. Sem dependências de runtime (biblioteca padrão). Compatível com macOS Apple Silicon, Linux e Windows.
+Python **3.11+**. The proxy uses only the Python standard library at runtime. It supports macOS (including Apple Silicon), Linux, and Windows.
 
-## Instalação
+## Installation
 
-Clone o repositório e instale o pacote:
+Clone the public repository and install it locally:
 
 ```bash
 git clone https://github.com/MarcosAlves90/veilgate.git
@@ -42,72 +43,70 @@ source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e .
 ```
 
-Para repositórios privados, o clone exige autorização de acesso no GitHub.
-
-Execute o FreeLLMAPI na porta `3001` como usual. Em outro terminal, inicie:
+Start FreeLLMAPI locally on port `3001`, then launch VeilGate in another terminal:
 
 ```bash
 veilgate --upstream http://127.0.0.1:3001 --listen 127.0.0.1 --port 8080
 ```
 
-Confira:
+Check the health endpoint:
 
 ```bash
 curl http://127.0.0.1:8080/healthz
 ```
 
-O endereço para o Hermes Agent (ou outro cliente OpenAI) passa a ser:
+Configure Hermes Agent, or another OpenAI-compatible Chat Completions client, to use:
 
 ```text
 base_url: http://127.0.0.1:8080/v1
 ```
 
-**Não altere** sua chave unificada `freellmapi-...`: ela continuará sendo repassada exclusivamente ao FreeLLMAPI local no cabeçalho `Authorization`. Preserve as demais configurações de modelo e modo API de seu cliente. Use Chat Completions (`/v1/chat/completions`).
+Keep your existing FreeLLMAPI API key (`freellmapi-...`) and model/API settings. VeilGate forwards the `Authorization` header only to the **local FreeLLMAPI upstream**; it does not send that header directly to external providers. Use the Chat Completions endpoint (`/v1/chat/completions`).
 
-## Teste com dados fictícios
+## Example with synthetic data
 
-A variável abaixo é apenas exemplo; substitua por sua chave *local* do FreeLLMAPI:
+Replace the placeholder below with your **local** FreeLLMAPI key. Do not publish the actual value or paste it into an issue:
 
 ```bash
-export FREELLMAPI_API_KEY='freellmapi-CHAVE_DE_TESTE'
+export FREELLMAPI_API_KEY='freellmapi-EXAMPLE-KEY'
 curl http://127.0.0.1:8080/v1/chat/completions \
   -H "Authorization: Bearer $FREELLMAPI_API_KEY" \
   -H 'Content-Type: application/json' \
-  -d '{"model":"auto","messages":[{"role":"user","content":"Contato: ficticio@example.com; diga olá"}]}'
+  -d '{"model":"auto","messages":[{"role":"user","content":"Contact: sample@example.com; say hello"}]}'
 ```
 
-A resposta **não é restaurada automaticamente**: se o modelo mencionar um pseudônimo como `[REDACTED_EMAIL_1]`, ele permanecerá visível. O VeilGate mantém SSE streaming (`"stream":true`) sem modificação da resposta, inclusive deltas de tool calls.
+The response is **not automatically restored**: if a model returns a placeholder such as `[REDACTED_EMAIL_1]`, it remains in the response. VeilGate also relays SSE responses (`"stream":true`) without modifying their content, including tool-call deltas.
 
-## Termos privados próprios
+## Custom private terms
 
 ```bash
 cp private-terms.example.txt private-terms.txt
-# Edite private-terms.txt com dados locais, nunca faça commit dele
+# Edit private-terms.txt with private local terms; never commit this file.
 veilgate --private-terms private-terms.txt
 ```
 
-Cada linha não comentada (mínimo três caracteres) será mascarada sem considerar caixa. Evite termos genéricos que afetariam código. Não configure nomes muito curtos. Arquivos ausentes causam falha na inicialização.
+Each noncomment line containing at least three characters is redacted without regard to letter case. Avoid overly broad terms that could alter code or other useful context. A missing or unreadable configured file prevents startup.
 
-## Configuração
+## Configuration
 
-| Argumento | Variável | Padrão |
+| CLI argument | Environment variable | Default |
 | --- | --- | --- |
 | `--listen` | `VEILGATE_LISTEN` | `127.0.0.1` |
 | `--port` | `VEILGATE_PORT` | `8080` |
 | `--upstream` | `VEILGATE_UPSTREAM` | `http://127.0.0.1:3001` |
-| `--private-terms` | `VEILGATE_PRIVATE_TERMS_FILE` | nenhum |
+| `--private-terms` | `VEILGATE_PRIVATE_TERMS_FILE` | None |
 
-O proxy recusa upstreams remotos, conexões que não sejam loopback e redirecionamentos HTTP. A única rota POST suportada é `/v1/chat/completions`. `GET /v1/models` e `GET /healthz` também estão disponíveis. Requisições inválidas ou incompatíveis recebem erro **sem serem encaminhadas**.
+The proxy rejects non-loopback listeners, remote upstreams, and upstream redirects. It supports only `POST /v1/chat/completions`, `GET /v1/models`, and `GET /healthz`. Unsupported or invalid requests are rejected before they reach the upstream. The maximum request body is 2 MiB, and the maximum upstream response is 16 MiB.
 
-## Testes
+## Tests and validation
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-Os testes usam um upstream HTTP simulado, não fazem chamadas a modelos reais e verificam o corpo efetivamente recebido pelo upstream. O CI repete os testes em Python 3.11, 3.12 e 3.13.
+Tests use a mock local HTTP upstream, not real model providers, and verify the actual bytes forwarded by VeilGate. GitHub Actions runs the suite on Python 3.11, 3.12, and 3.13.
 
-Para rodar os mesmos testes e gerar um relatório de cobertura Cobertura XML:
+Install the optional development dependency to run tests with coverage:
 
 ```bash
 python -m pip install -e '.[dev]'
@@ -115,22 +114,22 @@ python scripts/validate.py test
 python scripts/validate.py coverage
 ```
 
-O arquivo `coverage.xml` é gerado localmente e ignorado pelo Git. A política de validação do [POLIS](https://github.com/MarcosAlves90/polis) está em `.polis/policy.json`; com o CLI instalado, use `polis plan --repo .` e `polis gates --repo .`. POLIS não é uma dependência de execução do proxy.
+The generated `coverage.xml` report is ignored by Git. The committed [POLIS](https://github.com/MarcosAlves90/polis) policy is in `.polis/policy.json`. If POLIS is installed, run `polis plan --repo .` and `polis gates --repo .` to validate the configured tests and the strict coverage threshold of greater than 80%. POLIS is not required to run VeilGate.
 
-## Limitações
+## Limitations
 
-- Não protege prompts enviados fora do proxy nem dados já fornecidos a serviços externos.
-- Não reconhece confiavelmente nomes, endereços físicos, dados sem padrão, segredos desconhecidos ou texto confidencial por inferência.
-- Não inspeciona cabeçalhos além do necessário: `Authorization` é encaminhado ao gateway local e não enviado pelo VeilGate diretamente aos provedores.
-- Não aceita imagens, áudio, arquivos, Responses API, completions legadas ou outros formatos não documentados. Isso é intencional para impedir bypass silencioso.
-- Tokens de API presentes no corpo são bloqueados por heurística, não por cobertura exaustiva.
-- Pseudônimos são consistentes **dentro de uma requisição**; não há armazenamento ou associação entre sessões.
-- Para confidencialidade forte, prefira execução totalmente local do modelo e não use serviços externos.
+- Requests sent directly to FreeLLMAPI or an external provider bypass VeilGate.
+- Names, postal addresses, unknown identifiers, contextual secrets, and sensitive information that must be inferred may pass through.
+- `Authorization` is intentionally forwarded to the local gateway. This does not remove the external provider's account, network, or billing metadata.
+- Images, audio, files, the Responses API, legacy completions, and other unsupported formats are rejected rather than silently forwarded.
+- Credential detection is heuristic and cannot detect every secret format.
+- Placeholder numbering is consistent **within one request**, but there is no mapping stored between requests or sessions.
+- For stronger confidentiality, run the model entirely locally without using third-party model services.
 
-## Comunidade e segurança
+## Community and security
 
-Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para contribuições, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) para normas de participação e [SECURITY.md](SECURITY.md) antes de relatar uma vulnerabilidade. Use apenas dados fictícios nos relatos e testes.
+Before contributing, read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Read [SECURITY.md](SECURITY.md) before reporting vulnerabilities. Public issues and pull requests must use synthetic data only.
 
-## Licença
+## License
 
-[MIT](LICENSE). Contribuições e relatórios de bugs sem dados pessoais são bem-vindos.
+[MIT](LICENSE). Contributions and bug reports that contain no private or personal data are welcome.

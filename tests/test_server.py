@@ -52,7 +52,7 @@ class ServerTests(unittest.TestCase):
         cls.upstream = ThreadingHTTPServer(('127.0.0.1', 0), MockUpstream)
         cls.upstream.captured = []
         cls.t1 = start(cls.upstream)
-        cls.proxy = ThreadingHTTPServer(('127.0.0.1', 0), handler_factory(('127.0.0.1', cls.upstream.server_port), ('Projeto Secreto',)))
+        cls.proxy = ThreadingHTTPServer(('127.0.0.1', 0), handler_factory(('127.0.0.1', cls.upstream.server_port), ('Secret Project',)))
         cls.t2 = start(cls.proxy)
 
     @classmethod
@@ -93,8 +93,8 @@ class ServerTests(unittest.TestCase):
     def test_outbound_scrub_with_credentials_forwarded_only_locally(self):
         before = len(self.upstream.captured)
         status, _, response = self.post({'model': 'auto', 'messages': [
-            {'role': 'system', 'content': 'Projeto Secreto is the codename'},
-            {'role': 'user', 'content': 'Contact me joao@example.com and /Users/marcos/private'},
+            {'role': 'system', 'content': 'Secret Project is the codename'},
+            {'role': 'user', 'content': 'Contact me person@example.com and /Users/sampleuser/private'},
         ]})
         self.assertEqual(status, 200)
         self.assertIn(b'ok', response)
@@ -103,7 +103,7 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(route, '/v1/chat/completions')
         self.assertEqual(headers['Authorization'], 'Bearer freellmapi-test-key')
         self.assertNotIn('X-Personal-Trace', headers)
-        for sensitive in (b'joao@example.com', b'marcos', b'Projeto Secreto'):
+        for sensitive in (b'person@example.com', b'sampleuser', b'Secret Project'):
             self.assertNotIn(sensitive, outbound)
         self.assertIn(b'[REDACTED_EMAIL_1]', outbound)
 

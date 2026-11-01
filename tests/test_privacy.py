@@ -9,9 +9,9 @@ from veilgate.server import read_private_terms, validate_upstream
 class PrivacyTests(unittest.TestCase):
     def test_common_identifiers(self):
         sanitizer = Sanitizer()
-        raw = 'joao@example.com CPF 529.982.247-25 CNPJ 04.252.011/0001-10 fone (11) 98765-4321 /Users/marcos/Documents'
+        raw = 'person@example.com CPF 529.982.247-25 CNPJ 04.252.011/0001-10 phone (11) 98765-4321 /Users/sampleuser/Documents'
         clean = sanitizer.clean(raw)
-        for text in ('joao@example.com', '529.982.247-25', '04.252.011/0001-10', '98765-4321', '/Users/marcos'):
+        for text in ('person@example.com', '529.982.247-25', '04.252.011/0001-10', '98765-4321', '/Users/sampleuser'):
             self.assertNotIn(text, clean)
         self.assertIn('[REDACTED_EMAIL_1]', clean)
         self.assertIn('[REDACTED_CPF_1]', clean)
@@ -27,8 +27,8 @@ class PrivacyTests(unittest.TestCase):
         self.assertIn('123.456.789-00', Sanitizer().clean('123.456.789-00'))
 
     def test_custom_terms_case_insensitive(self):
-        s = Sanitizer(private_terms=('Projeto Arara',))
-        self.assertEqual(s.clean('PROJETO ARARA'), '[REDACTED_CUSTOM_1]')
+        s = Sanitizer(private_terms=('Project Sparrow',))
+        self.assertEqual(s.clean('PROJECT SPARROW'), '[REDACTED_CUSTOM_1]')
 
     def test_secrets_blocked(self):
         for text in ('ghp_' + 'a' * 30, 'sk-' + 'a' * 25,
@@ -118,8 +118,8 @@ class PrivacyTests(unittest.TestCase):
                               'metadata': {'nested': nested}}, Sanitizer())
 
     def test_unicode_and_custom_term_masking(self):
-        sanitizer = Sanitizer(private_terms=('Projeto Arara', 'Arara'))
-        text = sanitizer.clean('Projeto Arara, projeto arara, a@example.com')
+        sanitizer = Sanitizer(private_terms=('Project Sparrow', 'Sparrow'))
+        text = sanitizer.clean('Project Sparrow, project sparrow, a@example.com')
         self.assertEqual(text.count('[REDACTED_CUSTOM_1]'), 2)
         self.assertNotIn('a@example.com', text)
 
