@@ -74,6 +74,14 @@ class ServerTests(unittest.TestCase):
         con.close()
         return status, ctype, content
 
+    def post_raw(self, body, headers=None, path='/v1/chat/completions'):
+        con = http.client.HTTPConnection('127.0.0.1', self.proxy.server_port, timeout=5)
+        con.request('POST', path, body=body, headers={'Content-Type': 'application/json', **(headers or {})})
+        resp = con.getresponse()
+        result = resp.status, resp.read()
+        con.close()
+        return result
+
     def test_health(self):
         con = http.client.HTTPConnection('127.0.0.1', self.proxy.server_port)
         con.request('GET', '/healthz')
@@ -132,6 +140,38 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(resp.status, 200)
         self.assertEqual(json.loads(resp.read()), {'data': []})
         con.close()
+
+    def test_invalid_requests_are_not_forwarded(self):
+        cases = [
+            (b'{', {}, 422),
+            (b'[]', {}, 422),
+            (b'{"model":"auto","messages":[]}', {}, 422),
+            (b'{}', {'Content-Type': 'text/plain'}, 415),
+            (b'{}', {'Content-Length': str(2 * 1024 * 1024 + 1)}, 413),
+            (b'{}', {'Transfer-Encoding': 'chunked'}, 411),
+        ]
+        for body, headers, expected in cases:
+            with self.subTest(body=body, headers=headers):
+                before = len(self.upstream.captured)
+                status, response = self.post_raw(body, headers)
+                self.assertEqual(status, expected)
+                self.assertEqual(json.loads(response)['error']['type'], 'veilgate_error')
+                self.assertEqual(len(self.upstream.captured), before)
+
+    def test_non_allowlisted_get_is_rejected(self):
+        con = http.client.HTTPConnection('127.0.0.1', self.proxy.server_port, timeout=5)
+        con.request('GET', '/v1/responses')
+        response = con.getresponse()
+        self.assertEqual(response.status, 404)
+        response.read()
+        con.close()
+
+    def test_authorization_is_the_only_custom_header_forwarded(self):
+        status, _, _ = self.post({'model': 'auto', 'messages': [{'role': 'user', 'content': 'hello'}]})
+        self.assertEqual(status, 200)
+        sent_headers = self.upstream.captured[-1][1]
+        self.assertNotIn('X-Personal-Trace', sent_headers)
+        self.assertEqual(sent_headers['Authorization'], 'Bearer freellmapi-test-key')
 
 
 if __name__ == '__main__':

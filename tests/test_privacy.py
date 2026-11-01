@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from veilgate.privacy import RejectedInput, Sanitizer, sanitize_request
 from veilgate.server import read_private_terms, validate_upstream
@@ -66,6 +68,60 @@ class PrivacyTests(unittest.TestCase):
         for uri in ('https://127.0.0.1:3001', 'http://google.com', 'http://127.0.0.1:3001/foo', 'http://127.0.0.1:3001@evil.com', 'http://127.0.0.1:3001?x=y'):
             with self.subTest(uri=uri), self.assertRaises(ValueError):
                 validate_upstream(uri)
+
+    def test_invalid_private_terms_fail_before_proxy_starts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'terms.txt'
+            path.write_text('# comment\nPRIVATE PROJECT\n', encoding='utf-8')
+            self.assertEqual(read_private_terms(str(path)), ('PRIVATE PROJECT',))
+            path.write_text('ab\n', encoding='utf-8')
+            with self.assertRaises(ValueError):
+                read_private_terms(str(path))
+        self.assertEqual(read_private_terms(None), ())
+        with self.assertRaises(FileNotFoundError):
+            read_private_terms(str(path))
+
+    def test_invalid_input_structures_rejected(self):
+        base = {'model': 'auto', 'messages': [{'role': 'user', 'content': 'hi'}]}
+        cases = [
+            None,
+            [],
+            {'model': '', 'messages': base['messages']},
+            {'model': 'auto', 'messages': []},
+            {'model': 'auto', 'messages': 'hi'},
+            {**base, 'stream': 'true'},
+            {'model': 'auto', 'messages': ['text']},
+            {'model': 'auto', 'messages': [{'role': 'unknown', 'content': 'hi'}]},
+            {'model': 'auto', 'messages': [{'role': 'user', 'content': 12}]},
+            {'model': 'auto', 'messages': [{'role': 'user', 'content': [{'type': 'text', 'text': 12}]}]},
+            {**base, 'metadata': {'a@example.com': 'value'}},
+            {**base, 'metadata': {'image_url': {'url': 'data:image/jpeg'}}},
+            {**base, 'metadata': {'safe': object()}},
+        ]
+        for payload in cases:
+            with self.subTest(payload=repr(payload)), self.assertRaises(RejectedInput):
+                sanitize_request(payload, Sanitizer())
+
+    def test_nested_secret_blocked_even_in_tool_arguments(self):
+        payload = {'model': 'auto', 'messages': [{'role': 'assistant', 'content': None,
+            'tool_calls': [{'type': 'function', 'function': {'name': 'lookup',
+                'arguments': 'password=superSecretValue999'}}]}]}
+        with self.assertRaises(RejectedInput):
+            sanitize_request(payload, Sanitizer())
+
+    def test_deep_payload_rejected(self):
+        nested = 'hi'
+        for _ in range(40):
+            nested = [nested]
+        with self.assertRaises(RejectedInput):
+            sanitize_request({'model': 'auto', 'messages': [{'role': 'user', 'content': 'hi'}],
+                              'metadata': {'nested': nested}}, Sanitizer())
+
+    def test_unicode_and_custom_term_masking(self):
+        sanitizer = Sanitizer(private_terms=('Projeto Arara', 'Arara'))
+        text = sanitizer.clean('Projeto Arara, projeto arara, a@example.com')
+        self.assertEqual(text.count('[REDACTED_CUSTOM_1]'), 2)
+        self.assertNotIn('a@example.com', text)
 
 
 if __name__ == '__main__':

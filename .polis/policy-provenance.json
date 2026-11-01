@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "profile": "custom",
+  "validation_level": {
+    "policy_value": "",
+    "source": "profile_default",
+    "reason": "init_default_validation_level"
+  },
+  "gates": [
+    {
+      "id": "test.complete",
+      "gate_sha256": "6f7ea53271c4237c8e7b19476f6793eabd885d02f803311017e88ec01910868e",
+      "source": "policy_explicit",
+      "reason": "init_explicit_command"
+    },
+    {
+      "id": "coverage",
+      "gate_sha256": "d6a28fbff7f29e7925bcb1d5ae26b9cfa5cafb6fb3e7ed8c90ba5b43ae352a4d",
+      "source": "policy_explicit",
+      "reason": "init_explicit_command"
+    },
+    {
+      "id": "lint",
+      "gate_sha256": "262e27837fb00f38b2270625671767ecdb497cf4dd6efc7796aa7f379d780843",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "typecheck",
+      "gate_sha256": "709503f7e570b8d3db70d5eb929b9b8f492b73fa5baebecf8c793f5b41b2865f",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "build",
+      "gate_sha256": "d964bb20b0e382302c01ab2fd651ac8d3373c60cf28c186cd24915d09178816d",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "smoke",
+      "gate_sha256": "b282ef89ca41755e9a10a99ad6c7000208e104bb3744d8cbce7beceb75f2bc72",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "compatibility",
+      "gate_sha256": "8dfff902711d8c1c83ff92198de0b4ef07e107f3af290e7ed8d1d5fff1bf837e",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "dependency",
+      "gate_sha256": "79a8cbc13f5ba57daca41ccd0323aef42d8adf899c8e3d82a42832b99893b408",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "migration",
+      "gate_sha256": "ff7a861626bab1a7bc4f35a0fa782ce8460ec66c38259f9dc5b6567cfae09278",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "security",
+      "gate_sha256": "701f6a4c9f3cfc057757687c4728fb53dded27e918c42ac7f05625e37e3d8ee0",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    },
+    {
+      "id": "platform",
+      "gate_sha256": "e87f9cd1795254bd1d0a7219a972a207bb393a395843f9af69f04a9f49d71767",
+      "source": "profile_default",
+      "reason": "generated_by_profile"
+    }
+  ]
+}

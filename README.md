@@ -1,6 +1,6 @@
 # VeilGate
 
-**Proxy de privacidade local para clientes OpenAI-compatible, com foco em Hermes Agent + FreeLLMAPI.**
+**Proxy local de privacidade para clientes compatíveis com OpenAI Chat Completions, com foco em Hermes Agent e FreeLLMAPI.**
 
 O VeilGate examina requisições de texto **antes** de chegarem ao FreeLLMAPI. Ele mascara identificadores comuns e **rejeita requisições** que aparentemente contêm segredos. Nenhum dado de prompt é registrado, armazenado, enviado para telemetria ou processado por serviços de terceiros pelo próprio VeilGate.
 
@@ -32,16 +32,17 @@ Python **3.11+**. Sem dependências de runtime (biblioteca padrão). Compatível
 
 ## Instalação
 
-Extraia o arquivo `veilgate-project.zip` e abra a pasta extraída:
+Clone o repositório e instale o pacote:
 
 ```bash
+git clone https://github.com/MarcosAlves90/veilgate.git
 cd veilgate
 python3 -m venv .venv
 source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install -e .
 ```
 
-Depois de publicado no GitHub, também será possível instalar a partir de um `git clone`.
+Para repositórios privados, o clone exige autorização de acesso no GitHub.
 
 Execute o FreeLLMAPI na porta `3001` como usual. Em outro terminal, inicie:
 
@@ -106,6 +107,16 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 Os testes usam um upstream HTTP simulado, não fazem chamadas a modelos reais e verificam o corpo efetivamente recebido pelo upstream. O CI repete os testes em Python 3.11, 3.12 e 3.13.
 
+Para rodar os mesmos testes e gerar um relatório de cobertura Cobertura XML:
+
+```bash
+python -m pip install -e '.[dev]'
+python scripts/validate.py test
+python scripts/validate.py coverage
+```
+
+O arquivo `coverage.xml` é gerado localmente e ignorado pelo Git. A política de validação do [POLIS](https://github.com/MarcosAlves90/polis) está em `.polis/policy.json`; com o CLI instalado, use `polis plan --repo .` e `polis gates --repo .`. POLIS não é uma dependência de execução do proxy.
+
 ## Limitações
 
 - Não protege prompts enviados fora do proxy nem dados já fornecidos a serviços externos.
@@ -116,19 +127,10 @@ Os testes usam um upstream HTTP simulado, não fazem chamadas a modelos reais e 
 - Pseudônimos são consistentes **dentro de uma requisição**; não há armazenamento ou associação entre sessões.
 - Para confidencialidade forte, prefira execução totalmente local do modelo e não use serviços externos.
 
-## Publicação no GitHub
+## Comunidade e segurança
 
-O pacote inclui o diretório `.git` e os commits locais. Para criar um **novo repositório privado** no GitHub usando o GitHub CLI (`gh`), depois de extrair o ZIP:
-
-```bash
-brew install gh                # macOS, caso ainda não esteja instalado
-gh auth login                 # autentique sua própria conta
-cd veilgate
-gh repo create MarcosAlves90/veilgate --private --source=. --remote=origin --push
-```
-
-**Importante:** este comando cria um novo repositório remoto; não execute se já existir outro repositório nesse nome. É possível mudar o nome antes de executar.
+Consulte [CONTRIBUTING.md](CONTRIBUTING.md) para contribuições, [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) para normas de participação e [SECURITY.md](SECURITY.md) antes de relatar uma vulnerabilidade. Use apenas dados fictícios nos relatos e testes.
 
 ## Licença
 
-MIT. Contribuições e relatórios de bugs sem dados pessoais são bem-vindos.
+[MIT](LICENSE). Contribuições e relatórios de bugs sem dados pessoais são bem-vindos.

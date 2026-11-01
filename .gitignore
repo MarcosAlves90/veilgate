@@ -12,3 +12,7 @@ private-terms.txt
 *.db
 *.log
 .DS_Store
+.coverage
+.coverage.*
+coverage.xml
+.polis/artifacts/
