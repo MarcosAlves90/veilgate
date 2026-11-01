@@ -11,11 +11,12 @@ maintain older releases while the project is at version `0.1.0`.
 ## Reporting vulnerabilities
 
 Do **not** post exploits containing real secrets, personal data, or private
-prompts in public issues, discussions, or pull requests. Contact the repository
-maintainer through a private communication channel on their verified GitHub
-profile to arrange responsible disclosure. If GitHub's private vulnerability
-reporting is enabled for this repository, use its **Security → Report a
-vulnerability** flow instead.
+prompts in public issues, discussions, or pull requests. Use the repository's
+[Security advisories](https://github.com/MarcosAlves90/veilgate/security/advisories)
+page and select **Report a vulnerability** to submit a private report to the
+maintainer. If the reporting interface is unavailable, request an alternative
+private contact channel through the maintainer's verified GitHub profile,
+without disclosing vulnerability details publicly.
 
 Include the affected commit/version, the security boundary crossed, and a
 minimal reproduction with **fictitious data**. Do not test against someone
