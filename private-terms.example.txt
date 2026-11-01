@@ -1,0 +1,3 @@
+# Copie para private-terms.txt (ignorado pelo Git) e insira valores fictícios aqui.
+MeuNomeDeExemplo
+ProjetoSuperSecreto
